@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+#
+# Amazon AWS Elastic Computing EC2 server creation script in python.
+# Copyright (C) 2013  Benjamin H. Graham (bhgraham1@gmail.com)
+#
+# GNU General Public License 2, see COPYING
+#
+# Source: https://github.com/comparemetrics/mkec2srv
+#
+# Requires boto (apt-get -y install python-pip && pip install -U boto)
+
+import sys,getopt,time
+import boto.ec2
+
+# Get options from commandline
+def main(argv):
+	
+	ec2_region = ''
+	ec2_apikey = ''
+	ec2_apisecret = ''
+	ec2_disksize = ''
+	ec2_mountpoint = ''
+	ec2_ami = ''
+	ec2_keyname = ''
+	ec2_instancetype = ''
+	ec2_securitygroup = ''
+	ec2_name = ''
+
+	try:
+		opts, args = getopt.getopt(argv,"hr:a:s:d:m:i:k:t:g:n:",["ec2_region=","ec2_apikey=","ec2_apisecret=","ec2_disksize=","ec2_mountpoint=","ec2_ami=","ec2_keyname=","ec2_instancetype=","ec2_securitygroup=","ec2_name="])
+	except getopt.GetoptError:
+		print 'mkec2srv -r <region> -a <aws access key> -s <aws secret access key> -d <disk size> -m <mount point> -i <ami> -k <keyname> -t <instance type> -g <security group> -n <server name>'
+		sys.exit(2)
+	for opt, arg in opts:
+		if opt == '-h':
+			print 'Usage: mkec2srv [OPTION]... VALUE...'
+			print 'mkec2srv -r <region> -a <aws access key> -s <aws secret access key> -d <disk size> -m <mount point> -i <ami> -k <keyname> -t <instance type> -g <security group> -n <server name>'
+			print ''
+			print 'Mandatory arguments to long options are mandatory for short options too.'
+			print '  -r, --region                 region for server instance creation (us-east-1)'
+			print '  -a, --apikey                 aws api access key'
+			print '  -s, --apisecret              aws api secret access key'
+			print '  -d, --disksize               disk size for new server instance in GB (6)'
+			print '  -m, --mountpoint             mount point for dish (/dev/sda1)'
+			print '  -i, --ami                    ec2 ami image id (ami-1e39ca77)'
+			print '  -k, --keyname                key pair name from ec2'
+			print '  -t, --instancetype           instance type (m1.tiny)'
+			print '  -g, --securitygroup          security group from ec2 (default)'
+			print '  -n, --name                   name/tag for this instance in ec2'
+			print '  -h                           display this help and exit'
+			print '      --version                output version information and exit'
+			print ''
+			print 'Report mkec2srv bugs to: https://github.com/comparemetrics/mkec2srv/issues'
+			print 'mkec2srv home page: <https://github.com/comparemetrics/mkec2srv>'
+			print ''
+			sys.exit()
+		elif opt in ("-r", "--region"):
+			ec2_region = arg
+		elif opt in ("-a", "--apikey"):
+			ec2_apikey = arg
+		elif opt in ("-s", "--apisecret"):
+			ec2_apisecret = arg
+		elif opt in ("-d", "--disksize"):
+			ec2_disksize = arg
+		elif opt in ("-m", "--mountpoint"):
+			ec2_mountpoint = arg 
+		elif opt in ("-i", "--ami"):
+			ec2_ami = arg 
+		elif opt in ("-k", "--keyname"):
+			ec2_keyname = arg 
+		elif opt in ("-t", "--instancetype"):
+			ec2_instancetype = arg 
+		elif opt in ("-g", "--securitygroup"):
+			ec2_securitygroup = arg 
+		elif opt in ("-n", "--name"):
+			ec2_name = arg 
+
+	# Check for number of arguments
+	if len(argv)!=20:
+		print 'mkec2srv -r <region> -a <aws access key> -s <aws secret access key> -d <disk size> -m <mount point> -i <ami> -k <keyname> -t <instance type> -g <security group> -n <server name>'
+		sys.exit(1)
+
+	# Connect to AWS 
+	c=boto.ec2.connect_to_region(ec2_region,aws_access_key_id=ec2_apikey,aws_secret_access_key=ec2_apisecret)
+
+	# Setup Disk
+	dev_disk = boto.ec2.blockdevicemapping.EBSBlockDeviceType()
+	dev_disk.size = ec2_disksize # size in Gigabytes
+	mapping = boto.ec2.blockdevicemapping.BlockDeviceMapping()
+	mapping[ec2_mountpoint] = dev_disk # mount point
+
+	# Create Server
+	b= c.run_instances(ec2_ami,key_name=ec2_keyname,instance_type=ec2_instancetype,security_groups=[ec2_securitygroup],block_device_map=mapping)
+
+	# Check that it is running
+	sys.stdout.write("Waiting for EC2 server creation.")
+	while b.instances[0].update() != "running":
+		sys.stdout.write(".")
+		sys.stdout.flush()
+		time.sleep(5)
+	instance = b.instances[0]
+
+	# Tag the server
+	instance.add_tag('Name', ec2_name) # name
+
+	# Write the hostname
+	with open ('srvdeploy.txt', 'a') as f: f.write (b.instances[0].public_dns_name)
+	print " Done. \nAddress saved to srvdeploy.txt"
+
+	# Return server address
+	print b.instances[0].public_dns_name
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
+	

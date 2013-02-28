@@ -1,0 +1,39 @@
+Amazon AWS Elastic Computing EC2 server creation script in python.
+Copyright (C) 2013  Benjamin H. Graham (bhgraham1@gmail.com)
+
+Special Thanks to Compare Metrics (Compare Networks, LLC) for support.
+
+GNU General Public License 2, see COPYING
+
+Source: https://github.com/comparemetrics/mkec2srv
+
+Prerequisite:
+	python
+	pythin-pip
+	boto (pip install -U boto)
+
+Command Line Arguments: (precede with --)
+
+Usage: mkec2srv [OPTION]... VALUE...
+mkec2srv -r <region> -a <aws access key> -s <aws secret access key> -d <disk size> -m <mount point> -i <ami> -k <keyname> -t <instance type> -g <security group> -n <server name>
+
+Mandatory arguments to long options are mandatory for short options too.
+  -r, --region                 region for server instance creation (us-east-1)
+  -a, --apikey                 aws api access key
+  -s, --apisecret              aws api secret access key
+  -d, --disksize               disk size for new server instance in GB (6)
+  -m, --mountpoint             mount point for dish (/dev/sda1)
+  -i, --ami                    ec2 ami image id (ami-1e39ca77)
+  -k, --keyname                key pair name from ec2
+  -t, --instancetype           instance type (m1.tiny)
+  -g, --securitygroup          security group from ec2 (default)
+  -n, --name                   name/tag for this instance in ec2
+  -h                           display this help and exit
+      --version                output version information and exit
+
+Report mkec2srv bugs to: https://github.com/comparemetrics/mkec2srv/issues
+mkec2srv home page: <https://github.com/comparemetrics/mkec2srv>
+
+Examples:
+./mkec2srv -r us-east-1 -a <AWS API KEY> -s <AWS API SECRET> -d 8 -m /dev/sda1 -i ami-1e39ca77 -k operations -t m1.small -g default -n myservername
+
